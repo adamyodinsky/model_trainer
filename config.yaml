@@ -1,9 +1,14 @@
-symbol: "MSFT"
-time_period: "max"
-
 db:
   org: "local"
   name: "db0"
   bucket: "stocks_prices"
   url: "http://localhost:8086"
   token: "RDV6dIFHQzEKx1Hb5m30xZ0trij_4nqjTg8SjDPHYw3ZWzkQmG0Tr55GObX2m3mA_K7Qg2-CUsx0j3hot_9HgQ=="
+  prices_table: "stock_prices"
+
+
+POSTGRES_USER: postgres
+POSTGRES_PASSWORD: password
+POSTGRES_HOST: localhost
+POSTGRES_PORT: 5432
+POSTGRES_DB: postgres
