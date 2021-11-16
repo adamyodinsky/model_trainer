@@ -1,5 +1,7 @@
 import argparse
+
 import yaml
+from datetime import datetime
 from munch import DefaultMunch
 from data_downloader import timescale, helper
 
@@ -10,6 +12,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 # Importing the Keras libraries and packages for training the model
+from keras.models import load_model
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import LSTM
@@ -50,12 +53,12 @@ class ModelTrainer:
     x_train = []
     y_train = []
 
-    def __init__(self):
+    def __init__(self, time_steps: int = 60):
         self.args = args_parser()
         self.config = load_config()
         self.db = timescale.TmDB(self.config)
         self.scaler = MinMaxScaler(feature_range=(0, 1))
-        self.time_steps = 60
+        self.time_steps = time_steps
 
     def get_data(self, ticker: str, start: str, end: str):
         # Importing the training set
@@ -66,38 +69,42 @@ class ModelTrainer:
 
         self.raw_df = pd.read_sql_query(query, self.db.conn)
 
-    def preprocessing(self, test_size_ratio, time_steps: int, shuffle: bool = False):
+    def preprocessing(self, test_size_ratio, shuffle: bool = False):
         self.df_train, self.df_test = train_test_split(self.raw_df, test_size=test_size_ratio, shuffle=shuffle)
         self.training_set = self.df_train.iloc[:, 0:2].values
 
         # Feature Scaling
         self.training_set = self.scaler.fit_transform(self.training_set)
 
-        # Creating a data structure with time_steps inputs and 1 output
+        # Creating a data structure with self.timesteps inputs and 1 output
         set_length = len(self.training_set)
 
-        for i in range(time_steps, set_length):
-            self.x_train.append(self.training_set[i - time_steps:i, 0:2])
+        for i in range(self.time_steps, set_length):
+            self.x_train.append(self.training_set[i - self.time_steps:i, 0:2])
             self.y_train.append(self.training_set[i, 0])
         self.x_train, self.y_train = np.array(self.x_train), np.array(self.y_train)
 
         # Reshaping
         self.x_train = np.reshape(self.x_train, (self.x_train.shape[0], self.x_train.shape[1], 2))
 
-    def create_model(self, dropout: int, neurons, mid_layers: int):
-        # Part 2 - Building the RNN
+    def create_model(self, dropout: float, neurons: int, mid_layers: int):
+        # Building the RNN
 
         # Initialising the RNN
         self.model = Sequential()
 
-        # Adding the first LSTM layer and some Dropout regularisation
+        # Adding the first LSTM layer and Dropout regularisation
         self.model.add(LSTM(units=neurons, return_sequences=True, input_shape=(self.x_train.shape[1], 2)))
         self.model.add(Dropout(dropout))
 
-        for i in range(mid_layers):
-            # Adding a mid LSTM layer and some Dropout regularisation
+        for i in range(mid_layers - 1):
+            # Adding an LSTM layer and Dropout regularisation
             self.model.add(LSTM(units=neurons, return_sequences=True))
             self.model.add(Dropout(dropout))
+
+        # Adding a last middle LSTM layer
+        self.model.add(LSTM(units=neurons))
+        self.model.add(Dropout(dropout))
 
         # Adding the output layer
         self.model.add(Dense(units=1))
@@ -105,12 +112,9 @@ class ModelTrainer:
         # Compiling the RNN
         self.model.compile(optimizer='adam', loss='mean_squared_error')
 
-    def train_model(self, epochs, batch_size: int = 32):
+    def train_model(self, epochs, batch_size):
         # # Fitting the RNN to the Training set
-        self.model.fit(self.x_train, self.y_train, epochs=epochs, batch_size=batch_size)
-
-    def save_model(self, path: str):
-        self.model.save(path)
+        self.model.fit(self.x_train, self.y_train, epochs=epochs, batch_size=32)
 
     def test_model(self):
         # # Getting the real stock price
@@ -140,20 +144,27 @@ class ModelTrainer:
 
         return predicted_stock_price, real_stock_price
 
+    def load_model(self, path):
+        self.model = load_model(path)
+
 
 def main():
     ticker = 'MSFT'
-    start = "2018-11-01"
-    end = "2020-11-01"
+    start = "2015-01-01"
+    end = datetime.today().strftime('%Y-%m-%d')
 
     model_trainer = ModelTrainer()
     model_trainer.get_data(ticker, start, end)
-    model_trainer.preprocessing(test_size_ratio=0.2, time_steps=60)
-    model_trainer.create_model(mid_layers=3, neurons=50, dropout=0.2)
-    model_trainer.train_model(epochs=3, batch_size=32)
-    model_trainer.save_model("model.h5")
+    model_trainer.preprocessing(test_size_ratio=0.1)
+    # model_trainer.create_model(dropout=0.2, neurons=50, mid_layers=4)
+    # model_trainer.train_model(epochs=100, batch_size=32)
+    # model_trainer.model.save("model.h5")
+    model_trainer.load_model("model.h5")
+
     predicted_stock_price, real_stock_price = model_trainer.test_model()
     present(real_stock_price, predicted_stock_price)
+    score = model_trainer.model.evaluate(model_trainer.x_train, model_trainer.y_train, verbose=0)
+    print(score)
 
 
 main()
