@@ -34,13 +34,15 @@ def load_config():
 
 
 def present(real_stock_price, predicted_stock_price):
-    # # Visualising the results
+    # Visualising the results
+    today = datetime.today().strftime('%Y-%m-%d')
     plt.plot(real_stock_price, color='red', label='Real Google Stock Price')
     plt.plot(predicted_stock_price, color='blue', label='Predicted Google Stock Price')
-    plt.title('Google Stock Price Prediction')
+    plt.title('Price Prediction')
     plt.xlabel('Time')
-    plt.ylabel('Google Stock Price')
+    plt.ylabel('Real Price')
     plt.legend()
+    plt.savefig(f"./plots/{today}.pdf", bbox_inches='tight')
     plt.show()
 
 
@@ -50,6 +52,7 @@ class ModelTrainer:
     df_train = None
     df_test = None
     training_set = None
+    x_test = []
     x_train = []
     y_train = []
 
@@ -110,7 +113,12 @@ class ModelTrainer:
         self.model.add(Dense(units=1))
 
         # Compiling the RNN
-        self.model.compile(optimizer='adam', loss='mean_squared_error')
+        self.model.compile(optimizer='adam',
+                           loss='mean_squared_error',
+                           metrics=["mean_squared_error",
+                                    "mean_absolute_error",
+                                    "mean_absolute_percentage_error",
+                                    "cosine_proximity"])
 
     def train_model(self, epochs, batch_size):
         # # Fitting the RNN to the Training set
@@ -125,15 +133,14 @@ class ModelTrainer:
         inputs = inputs.reshape(-1, 2)
         inputs = self.scaler.transform(inputs)
 
-        x_test = []
         set_length = len(self.df_test)
 
         for i in range(self.time_steps, set_length + self.time_steps):
-            x_test.append(inputs[i - self.time_steps:i, 0:2])
+            self.x_test.append(inputs[i - self.time_steps:i, 0:2])
 
-        x_test = np.array(x_test)
-        x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 2))
-        predicted_stock_price = self.model.predict(x_test)
+        self.x_test = np.array(self.x_test)
+        self.x_test = np.reshape(self.x_test, (self.x_test.shape[0], self.x_test.shape[1], 2))
+        predicted_stock_price = self.model.predict(self.x_test)
 
         # create empty table with 12 fields
         predicted_stock_price_like_shape = np.zeros(shape=(len(predicted_stock_price), 2))
@@ -157,13 +164,18 @@ def main():
     model_trainer.get_data(ticker, start, end)
     model_trainer.preprocessing(test_size_ratio=0.1)
     # model_trainer.create_model(dropout=0.2, neurons=50, mid_layers=4)
-    # model_trainer.train_model(epochs=100, batch_size=32)
+    # model_trainer.train_model(epochs=30, batch_size=32)
     # model_trainer.model.save("model.h5")
     model_trainer.load_model("model.h5")
 
     predicted_stock_price, real_stock_price = model_trainer.test_model()
-    present(real_stock_price, predicted_stock_price)
-    score = model_trainer.model.evaluate(model_trainer.x_train, model_trainer.y_train, verbose=0)
+    # present(real_stock_price, predicted_stock_price)
+    score = model_trainer.model.evaluate(model_trainer.x_test, predicted_stock_price,
+                                         steps=model_trainer.time_steps,
+                                         batch_size=32,
+                                         return_dict=True
+                                         )
+    # print(f"Test loss: {score[0]} / Test accuracy: {score[1]}")
     print(score)
 
 
