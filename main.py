@@ -36,8 +36,8 @@ def load_config():
 def present(real_stock_price, predicted_stock_price):
     # Visualising the results
     today = datetime.today().strftime('%Y-%m-%d')
-    plt.plot(real_stock_price, color='red', label='Real Google Stock Price')
-    plt.plot(predicted_stock_price, color='blue', label='Predicted Google Stock Price')
+    plt.plot(real_stock_price, color='red', label='Real Stock Price')
+    plt.plot(predicted_stock_price, color='blue', label='Predicted Stock Price')
     plt.title('Price Prediction')
     plt.xlabel('Time')
     plt.ylabel('Real Price')
