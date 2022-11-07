@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings(action='ignore', category=UserWarning)
+
 from email.policy import default
 import yaml
 from datetime import datetime
@@ -170,6 +173,7 @@ def init(ticker: str, start: str, end: str):
 
     
     print("\n=============INIT=============")
+    model_trainer.model.summary()
     print(f"Created {model_file} successfully!")
     
 
@@ -178,7 +182,7 @@ def init(ticker: str, start: str, end: str):
 @click.option('-t', '--ticker', default='MSFT')
 @click.option('-s', '--start', help="The date from which the training data starts.", default='2021-01-01')
 @click.option('-e', '--end', help="The last date of training data.", default='')
-@click.option('-e', '--epochs', help="Number of training epochs", default=10)
+@click.option('-ep', '--epochs', help="Number of training epochs", default=100)
 def train(ticker: str, start: str, end: str, epochs: int):
     model_file = f"{ticker.lower()}_model.h5"
     if end == '':
@@ -225,9 +229,22 @@ def predict(ticker: str, start: str, end: str):
     print("\n=============PRESENT=============")
     print(f"Presented {model_file} successfully!")
 
+@click.command(help="Print a summary of the model.")
+@click.option('-t', '--ticker', default='MSFT')
+def summary(ticker: str):
+    model_file = f"{ticker.lower()}_model.h5"
+
+    model_trainer = ModelTrainer()
+    model_trainer.load_model(model_file)
+        
+    print("\n=============SUMMARY=============")
+    model_trainer.model.summary()
+    
+
 
 cli.add_command(init)
 cli.add_command(train)
 cli.add_command(predict)
+cli.add_command(summary)
 
 cli()

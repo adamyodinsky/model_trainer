@@ -12,3 +12,7 @@ Note: there is an issue with tensorflow, moving from macos
 ## Makefile
 
 make run
+
+# What's Next?
+
+- Add more input parameters that can make the prediction better. maybe an RSI and a 
