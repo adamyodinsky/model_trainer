@@ -86,7 +86,7 @@ class ModelTrainer:
             self.y_train.append(self.training_set[i, 0])
         self.x_train, self.y_train = np.array(self.x_train), np.array(self.y_train)
 
-        # Reshaping
+        # Reshaping x_train to (price_array, volume_array, num_of_arrays)
         self.x_train = np.reshape(self.x_train, (self.x_train.shape[0], self.x_train.shape[1], 2))
 
     def create_model(self, dropout: float, neurons: int, mid_layers: int):
