@@ -3,3 +3,4 @@
 plots/*
 .vscode
 .venv
+*.h5
