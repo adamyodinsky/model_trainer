@@ -59,7 +59,7 @@ class ModelTrainer:
     x_train = []
     y_train = []
 
-    def __init__(self, time_steps: int = 60):
+    def __init__(self, time_steps: int = 90):
         self.config = load_config()
         self.db = timescale.TmDB(self.config)
         self.scaler = MinMaxScaler(feature_range=(0, 1))
@@ -168,7 +168,7 @@ def init(ticker: str, start: str, end: str):
     model_trainer = ModelTrainer()
     model_trainer.get_data(ticker, start, end)
     model_trainer.preprocessing(test_size_ratio=0.1)
-    model_trainer.create_model(dropout=0.2, neurons=50, mid_layers=4)
+    model_trainer.create_model(dropout=0.2, neurons=50, mid_layers=5)
     model_trainer.model.save(model_file)
 
     
@@ -228,6 +228,8 @@ def predict(ticker: str, start: str, end: str):
     
     print("\n=============PRESENT=============")
     print(f"Presented {model_file} successfully!")
+
+
 
 @click.command(help="Print a summary of the model.")
 @click.option('-t', '--ticker', default='MSFT')
