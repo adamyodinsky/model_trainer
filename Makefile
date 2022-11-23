@@ -1,5 +1,7 @@
-.PHONY: init train predict summary
+.PHONY: setup init train predict summary
 
+setup:
+	poetry install
 
 init: 
 	poetry run python3 model_trainer/main.py init
